@@ -1,8 +1,28 @@
+import { PrismaClient } from '@prisma/client/edge'
+import { withAccelerate } from '@prisma/extension-accelerate'
 import { Hono } from 'hono'
+//important in serverless environment variables the routes may be independently deployed. 
+//bindings here is used for the c.env.DATABASE_URL type definition
+const app = new Hono<{
+  Bindings: {
+    DATABASE_URL: string
+  }
+}>();
 
-const app = new Hono()
+//sign-up route
+app.post('/api/v1/user/signup',async (c)=>{
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+}).$extends(withAccelerate())
 
-app.post('/api/v1/user/signup',(c)=>{
+const body = await c.req.json();
+const encryptPassword = new TextEncoder().encode(body.password);
+await prisma.user.create({
+  data:{
+    email: body.email,
+    password: body.password,
+  }
+})
   return c.json('signup');
 })
 

@@ -91,7 +91,7 @@ DATABASE_URL = "prisma://accelerate.prisma-data.net/?api_key=eyJhbGciOiJIUzI1NiI
 
 💡
 
-You should not have your prod URL committed either in .env or in wrangler.toml to github wranger.toml should have a dev/local DB url .env should be in .gitignore
+You should not have your prod URL committed either in .env or in wrangler.toml to github wrangler.toml should have a dev/local DB url .env should be in .gitignore
 
 #### 4. Initialize the schema
 
