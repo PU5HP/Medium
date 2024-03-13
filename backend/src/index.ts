@@ -28,7 +28,7 @@ app.use('/api/v1/blog/*', async (c, next) => {
   const response = await verify(token,c.env.JWT_SECRET);
   console.log(response);
   if(response.id){
-    c.set('userId',response.id)
+    c.set('userId',response.id)//return user id to the next middleware
     await next()
   }
   c.status(403);
@@ -99,21 +99,79 @@ if(user===null){
 const jwt = await sign({id: user.id},c.env.JWT_SECRET);
   return c.json({jwt});
 })
+
+
+
 //create blog
-app.post('/api/v1/blog',(c)=>{
-  const user = c.get('userId');
-  return c.json({'create blog':user});
-})
+app.post('/api/v1/blog',async(c)=>{
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+}).$extends(withAccelerate())
 
-app.put('/api/v1/blog',(c)=>{
-  return c.json('modifying the blog')
-})
+  const body = await c.req.json();
+  const userId = c.get('userId');
+  //create post in the DB
+  const post = await prisma.post.create({
+    data:{
+      title:body.title,
+      content:body.content,
+      published:body.published,
+      authorId:userId
+    }
+  })
 
-app.get('/api/v1/blog/:id',(c)=>{
-  return c.json('Single blog with id: ' + c.req.param('id'));
+  return c.json({'create blog user':userId,'postId':post.id});
+})
+//updating the blog
+app.put('/api/v1/blog',async (c)=>{
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+}).$extends(withAccelerate())
+//pass the post id in the body
+const userId = c.get('userId');
+  const body = await c.req.json();
+  const postData = await prisma.post.update({
+    where:{
+      id:body.postId,
+      authorId:userId
+    },
+    data:{
+      content:body.content,
+      published:body.published,
+      title:body.title
+    },
+  })
+  
+  return c.json({'updated create blog user':userId,'postId':postData});
+  
+})
+//get all the particular posts
+app.get('/api/v1/blog/:uId',async (c)=>{
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate())
+  const userId = c.get('userId');
+  //const postId = c.body.postId;
+  const posts = await prisma.post.findMany({
+    where:{
+      authorId:userId
+    }
+  })
+  console.log(posts);
+
+  return c.json({'user_posts_uid':posts});
 });
-
-app.get('/api/v1/blog/bulk',(c)=>{
-  return c.json('all blog listed:')
+//give away all posts
+app.get('/api/v1/blog/bulk/posts',async (c)=>{
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate())
+  const userId = c.get('userId');
+  //const postId = c.body.postId;
+  const posts = await prisma.post.findMany();
+  console.log(posts);
+  
+  return c.json({'user_posts_all':posts});
+  //return c.json('all blog listed:')
 })
 export default app
