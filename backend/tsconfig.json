@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES5",
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
     "lib": [
-      "ESNext"
+      "ES5"
     ],
+    "skipLibCheck": false,
     "types": [
       "@cloudflare/workers-types"
     ],
