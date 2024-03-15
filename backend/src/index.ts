@@ -5,7 +5,7 @@ import { use } from 'hono/jsx';
 import { decode, sign, verify } from 'hono/jwt'
 //important in serverless environment variables the routes may be independently deployed. 
 //bindings here is used for the c.env.DATABASE_URL type definition
-
+import { signinInput,signupInput,createPostInput,updatePostInput } from '@pu5hp/medium-common';
 
 const app = new Hono<{
   Bindings: {
@@ -41,6 +41,13 @@ app.post('/api/v1/user/signup',async (c)=>{
 }).$extends(withAccelerate())
 try{
   const body = await c.req.json();
+  console.log(body);
+  const {success} = signupInput.safeParse(body);
+  console.log(success);
+  if(!success){
+    c.status(403);
+    return c.text('wrong inputs');
+  }
   const BeforeHash = new TextEncoder().encode(body.password);//in certain format before hashing
   const hashedPassword = await crypto.subtle.digest(
     {
@@ -81,6 +88,12 @@ app.post('/api/v1/user/signin',async (c)=>{
 
 try{
   const body = await c.req.json();
+  //zod check
+  const {success} = signinInput.safeParse(body)
+  if(!success){
+    c.status(411)
+    return c.json({'message':'incorrect inputs'})
+  }
   const BeforeHash = new TextEncoder().encode(body.password);//in certain format before hashing
   const hashedPassword = await crypto.subtle.digest(
     {
@@ -120,6 +133,11 @@ app.post('/api/v1/blog',async(c)=>{
 }).$extends(withAccelerate())
 try{
   const body = await c.req.json();
+  const {success} = createPostInput.safeParse(body);
+  if(!success){
+    c.status(411)
+    return c.json({'message':'incorrect inputs'})
+  }
   const userId = c.get('userId');
   //create post in the DB
   const post = await prisma.post.create({
@@ -146,6 +164,11 @@ app.put('/api/v1/blog/:pId',async (c)=>{
 //pass the post id in the body
   const userId = c.get('userId');
   const body = await c.req.json();
+  const {success} = updatePostInput.safeParse(body);
+  if(!success){
+    c.status(411)
+    return c.json({'message':'incorrect inputs'})
+  }
   const postId =  c.req.param('pId');
   const postData = await prisma.post.update({
     where:{

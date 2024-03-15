@@ -480,3 +480,321 @@ Make sure you have logged in the cloudflare cli using `npx wrangler login`
 ![notion image](https://www.notion.so/image/https%3A%2F%2Fprod-files-secure.s3.us-west-2.amazonaws.com%2F085e8ad8-528e-47d7-8922-a23dc4016453%2F7b4c9187-b872-42d0-8f78-96e74a17a131%2FScreenshot_2024-02-24_at_12.06.20_PM.png?table=block&id=00d9d4a3-424f-4970-b9fc-6a9459382174&cache=v2)
 
 Test your production URL in postman, make sure it works
+# Step 10 - Zod validation
+
+If you’ve gone through the video `Cohort 1 - Deploying npm packages, Intro to Monorepos`, you’ll notice we introduced type inference in `Zod`
+
+[https://zod.dev/?id=type-inference](https://zod.dev/?id=type-inference)
+
+This let’s you get types from `runtime zod variables` that you can use on your frontend
+
+![notion image](https://www.notion.so/image/https%3A%2F%2Fprod-files-secure.s3.us-west-2.amazonaws.com%2F085e8ad8-528e-47d7-8922-a23dc4016453%2F082a51ca-7f1b-46d8-90f9-c751e4f8cbe1%2FScreenshot_2024-02-24_at_12.30.12_PM.png?table=block&id=70aad17f-5b10-4804-8d58-deab3523f015&cache=v2)
+
+We will divide our project into 3 parts
+
+1.  Backend
+
+2.  Frontend
+
+3.  common
+
+`common` will contain all the things that frontend and backend want to share. We will make `common` an independent `npm module` for now. Eventually, we will see how `monorepos` make it easier to have multiple packages sharing code in the same repo
+# Step 11 - Initialise common
+
+1.  Create a new folder called `common` and initialize an empty ts project in it
+
+```javascript
+mkdir common
+cd common
+npm init -y
+npx tsc --init
+```
+
+1.  Update `tsconfig.json`
+
+```javascript
+"rootDir": "./src",
+"outDir": "./dist",
+"declaration": true,
+```
+
+1.  Sign up/login to npmjs.org
+
+2.  Run `npm login`
+
+3.  Update the `name` in `package.json` to be in your own npm namespace, Update main to be `dist/index.js`
+
+```javascript
+{
+  "name": "@100xdevs/common-app",
+  "version": "1.0.0",
+  "description": "",
+	"main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
+
+```
+
+1.  Add `src` to `.npmignore`
+
+2.  Install zod
+
+```javascript
+npm i zod
+```
+
+1.  Put all types in `src/index.ts`
+
+1.  signupInput / SignupInput
+2.  signinInput / SigninInput
+3.  createPostInput / CreatePostInput
+4.  updatePostInput / UpdatePostInput
+
+Solution
+
+1.  `tsc -b` to generate the output
+
+2.  Publish to npm
+
+```javascript
+npm publish --access public
+```
+
+1.  Explore your package on npmjs
+2. # Step 12 - Import zod in backend
+
+1.  Go to the backend folder
+
+```javascript
+cd backend
+```
+
+1.  Install the package you published to npm
+
+```javascript
+npm i your_package_name
+```
+
+1.  Explore the package
+
+```javascript
+cd node_modules/your_package_name
+```
+
+1.  Update the routes to do zod validation on them
+
+Solution
+
+```javascript
+import { PrismaClient } from '@prisma/client/edge'
+import { withAccelerate } from '@prisma/extension-accelerate'
+import { Hono } from 'hono';
+import { sign, verify } from 'hono/jwt'
+import { signinInput, signupInput, createPostInput, updatePostInput } from "@100xdevs/common-app"
+
+// Create the main Hono app
+const app = new Hono<{
+	Bindings: {
+		DATABASE_URL: string,
+		JWT_SECRET: string,
+	},
+	Variables : {
+		userId: string
+	}
+}>();
+
+app.use('/api/v1/blog/*', async (c, next) => {
+	const jwt = c.req.header('Authorization');
+	if (!jwt) {
+		c.status(401);
+		return c.json({ error: "unauthorized" });
+	}
+	const token = jwt.split(' ')[1];
+	const payload = await verify(token, c.env.JWT_SECRET);
+	if (!payload) {
+		c.status(401);
+		return c.json({ error: "unauthorized" });
+	}
+	c.set('userId', payload.id);
+	await next()
+})
+
+app.post('/api/v1/signup', async (c) => {
+	const prisma = new PrismaClient({
+		datasourceUrl: c.env?.DATABASE_URL	,
+	}).$extends(withAccelerate());
+
+	const body = await c.req.json();
+	const { success } = signupInput.safeParse(body);
+	if (!success) {
+		c.status(400);
+		return c.json({ error: "invalid input" });
+	}
+	try {
+		const user = await prisma.user.create({
+			data: {
+				email: body.email,
+				password: body.password
+			}
+		});
+		const jwt = await sign({ id: user.id }, c.env.JWT_SECRET);
+		return c.json({ jwt });
+	} catch(e) {
+		c.status(403);
+		return c.json({ error: "error while signing up" });
+	}
+})
+
+app.post('/api/v1/signin', async (c) => {
+	const prisma = new PrismaClient({
+		datasourceUrl: c.env?.DATABASE_URL	,
+	}).$extends(withAccelerate());
+
+	const body = await c.req.json();
+	const { success } = signinInput.safeParse(body);
+	if (!success) {
+		c.status(400);
+		return c.json({ error: "invalid input" });
+	}
+	const user = await prisma.user.findUnique({
+		where: {
+			email: body.email
+		}
+	});
+
+	if (!user) {
+		c.status(403);
+		return c.json({ error: "user not found" });
+	}
+
+	const jwt = await sign({ id: user.id }, c.env.JWT_SECRET);
+	return c.json({ jwt });
+})
+
+app.get('/api/v1/blog/:id', async (c) => {
+	const id = c.req.param('id');
+	const prisma = new PrismaClient({
+		datasourceUrl: c.env?.DATABASE_URL	,
+	}).$extends(withAccelerate());
+	
+	const post = await prisma.post.findUnique({
+		where: {
+			id
+		}
+	});
+
+	return c.json(post);
+})
+
+app.post('/api/v1/blog', async (c) => {
+	const userId = c.get('userId');
+	const prisma = new PrismaClient({
+		datasourceUrl: c.env?.DATABASE_URL	,
+	}).$extends(withAccelerate());
+
+	const body = await c.req.json();
+	const { success } = createPostInput.safeParse(body);
+	if (!success) {
+		c.status(400);
+		return c.json({ error: "invalid input" });
+	}
+
+	const post = await prisma.post.create({
+		data: {
+			title: body.title,
+			content: body.content,
+			authorId: userId
+		}
+	});
+	return c.json({
+		id: post.id
+	});
+})
+
+app.put('/api/v1/blog', async (c) => {
+	const userId = c.get('userId');
+	const prisma = new PrismaClient({
+		datasourceUrl: c.env?.DATABASE_URL	,
+	}).$extends(withAccelerate());
+
+	const body = await c.req.json();
+	const { success } = updatePostInput.safeParse(body);
+	if (!success) {
+		c.status(400);
+		return c.json({ error: "invalid input" });
+	}
+
+	prisma.post.update({
+		where: {
+			id: body.id,
+			authorId: userId
+		},
+		data: {
+			title: body.title,
+			content: body.content
+		}
+	});
+
+	return c.text('updated post');
+});
+
+export default app;
+
+```
+# Step 13 - Init the FE project
+
+1.  Initialise a react app
+
+```javascript
+npm create vite@latest
+```
+
+1.  Initialise tailwind [https://tailwindcss.com/docs/guides/vite](https://tailwindcss.com/docs/guides/vite)
+
+```javascript
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+```
+
+1.  Update tailwind.config.js
+
+```javascript
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+```
+
+1.  Update index.css
+
+```javascript
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+1.  Empty up App.css
+
+2.  Install your package
+
+```javascript
+npm i your_package
+```
+
+1.  Run the project locally
+
+```javascript
+npm run dev
+```
