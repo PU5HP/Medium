@@ -1,4 +1,4 @@
-1.first made component for the signup page in folder components
+1.first made component for the signup page in folder: components
 
 #  Front end setup-Commands
 
