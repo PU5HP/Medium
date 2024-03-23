@@ -5,11 +5,11 @@ import {SignupCard} from "@/components/ui/signupcard"
 export function SignupPage (){
   return(
     <>
-      <div className="grid grid-cols-2 dark bg-[#1d6f42]">
+      <div className="grid grid-cols-1 lg:grid-cols-2 dark bg-[#1d6f42]">
         <div>
-        <SignupCard></SignupCard>
+        <SignupCard type="signup"></SignupCard>
         </div>
-        <div className="invisible lg:visible">
+        <div className="hidden lg:block">
         <Quote></Quote>
         </div>
       </div>

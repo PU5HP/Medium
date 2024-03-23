@@ -1,33 +1,49 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate} from "react-router-dom";
 import { Label } from "@radix-ui/react-label";
 import { Input } from "./input";
 import { Button } from "./button";
 import { ChangeEvent, useState } from "react";
 import { SignupInput } from "@pu5hp/medium-common";
+import axios from "axios";
+import {BACKEND_URL} from "../../../config"
+
 
 export function SignupCard({ type }: { type: "signup" | "signin" }) {
+  const navigate = useNavigate();
   const [postInputs, setPostInputs] = useState<SignupInput>({
     name: "",
     email: "",
     password: ""
   });
 
+async function sendRequest(){
+  try{
+    const response = await axios.post(`${BACKEND_URL}/api/v1/user/signup`);
+    const jwt = response.data;
+    localStorage.setItem("token",jwt);
+    navigate("/blogs");
+  }
+  catch(e){
+    //alert the user that the BE request failed 
+  }
+  
+}
   return (
     <>
       <div className="dark bg-[#1d6f42] h-screen flex justify-center flex-col items-center">
         <div className="flex flex-col items-center">
-          <div className="dark:text-white text-5xl font-bold">
+          <div className="dark:text-white text-5xl font-bold hover:dark:text-pink-300">
             Join Medium
           </div>
           <p className="dark:text-white text-lg ps">
-            Already have an account?{" "}
-            <Link to={"/signin"} className="pl-2 underline">
-              Log in
+            {type ==="signup" ?"Already have an account?":"Don't have an account?"}
+            <Link to={type === "signin" ? "/signup" : "/signin"} className="pl-2 underline">
+              {type === "signin" ? "Sign up" : "Sign in"}
             </Link>
           </p>
 
           <div className="flex flex-col gap-4 mt-8 w-full text-inherit">
-            <LabelledInput 
+           {type === "signup" ? <LabelledInput 
               label="Name"
               placeholder=""
               onChange={(e) => {
@@ -35,8 +51,8 @@ export function SignupCard({ type }: { type: "signup" | "signin" }) {
                   ...postInputs,
                   name: e.target.value
                 });
-              }}
-            />
+              }} 
+            /> : null}
 
             <LabelledInput
               label="Email"
@@ -61,8 +77,12 @@ export function SignupCard({ type }: { type: "signup" | "signin" }) {
               }}
             />
           </div>
+          <Button className="dark:bg-[#1D6F42] dark:text-white w-full text-lg mt-4 hover:dark:text-pink-300" type="submit">
+            {type==="signup" ? "Sign up" : "Sign in"}
+            </Button>
         </div>
       </div>
+      
     </>
   );
 }
