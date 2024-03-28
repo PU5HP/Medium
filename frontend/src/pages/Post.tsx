@@ -1,5 +1,5 @@
 export function PostCard (){
     return(<div>
-        PostCard
+        <PostCard></PostCard>
     </div>)
 }

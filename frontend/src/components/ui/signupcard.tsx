@@ -18,13 +18,16 @@ export function SignupCard({ type }: { type: "signup" | "signin" }) {
 
 async function sendRequest(){
   try{
-    const response = await axios.post(`${BACKEND_URL}/api/v1/user/signup`);
+    console.log('in the tryyyyyy')
+    const response = await axios.post(`${BACKEND_URL}/api/v1/user/${type === "signup" ? "signup" : "signin"}`,postInputs);
     const jwt = response.data;
-    localStorage.setItem("token",jwt);
-    navigate("/blogs");
+    console.log("token is",jwt['jwt'])
+    localStorage.setItem("token",'Bearer '+jwt['jwt']);
+    navigate("/blog/bulk/posts");
   }
   catch(e){
     //alert the user that the BE request failed 
+    alert('Error while signing up')
   }
   
 }
@@ -77,7 +80,7 @@ async function sendRequest(){
               }}
             />
           </div>
-          <Button className="dark:bg-[#1D6F42] dark:text-white w-full text-lg mt-4 hover:dark:text-pink-300" type="submit">
+          <Button onClick={sendRequest} className="dark:bg-[#1D6F42] dark:text-white w-full text-lg mt-4 hover:dark:text-pink-300" type="submit">
             {type==="signup" ? "Sign up" : "Sign in"}
             </Button>
         </div>

@@ -3,6 +3,7 @@ import { withAccelerate } from '@prisma/extension-accelerate'
 import { Hono } from 'hono'
 import { use } from 'hono/jsx';
 import { decode, sign, verify } from 'hono/jwt'
+import { cors } from 'hono/cors';
 //important in serverless environment variables the routes may be independently deployed. 
 //bindings here is used for the c.env.DATABASE_URL type definition
 import { signinInput,signupInput,createPostInput,updatePostInput } from '@pu5hp/medium-common';
@@ -15,6 +16,8 @@ const app = new Hono<{
 		userId: string
 	}
 }>();
+//cors issue handling
+app.use('/api/*', cors());
 //middle ware to authorize the user for blogs
 app.use('/api/v1/blog/*', async (c, next) => {
   //get the header
@@ -208,7 +211,18 @@ app.get('/api/v1/blog/bulk/posts',async (c)=>{
   }).$extends(withAccelerate())
   const userId = c.get('userId');
   //const postId = c.body.postId;
-  const posts = await prisma.post.findMany();
+  const posts = await prisma.post.findMany({
+    select: {
+      content: true,
+      title: true,
+      id: true,
+      author: {
+        select:{
+          name: true
+        }
+      }
+    }
+  });
   console.log(posts);
   
   return c.json({'user_posts_all':posts});
