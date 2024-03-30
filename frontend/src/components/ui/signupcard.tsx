@@ -18,10 +18,9 @@ export function SignupCard({ type }: { type: "signup" | "signin" }) {
 
 async function sendRequest(){
   try{
-    console.log('in the tryyyyyy')
+    
     const response = await axios.post(`${BACKEND_URL}/api/v1/user/${type === "signup" ? "signup" : "signin"}`,postInputs);
     const jwt = response.data;
-    console.log("token is",jwt['jwt'])
     localStorage.setItem("token",'Bearer '+jwt['jwt']);
     navigate("/blog/bulk/posts");
   }

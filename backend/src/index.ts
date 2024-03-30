@@ -188,19 +188,29 @@ app.put('/api/v1/blog/:pId',async (c)=>{
   return c.json({'updated create blog user':userId,'postId':postData});
   
 })
-//get all the particular posts of user
-app.get('/api/v1/blog/:uId',async (c)=>{
+//get all the particular post 
+app.get('/api/v1/blog/:pId',async (c)=>{
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate())
-  const userId = c.get('userId');
-  //const postId = c.body.postId;
-  const posts = await prisma.post.findMany({
+  const postId = c.req.param('pId');
+ // const postId = c.body.postId;
+  const posts = await prisma.post.findFirst({
     where:{
-      authorId:userId
+      id:postId
+    },
+    select:{
+      id:true,
+      title:true,
+      content:true,
+      author:{
+        select:{
+          name:true
+        }
+      }
     }
   })
-  console.log(posts);
+  console.log(posts,"------");
 
   return c.json({'user_posts_uid':posts});
 });
@@ -223,8 +233,6 @@ app.get('/api/v1/blog/bulk/posts',async (c)=>{
       }
     }
   });
-  console.log(posts);
-  
   return c.json({'user_posts_all':posts});
   //return c.json('all blog listed:')
 })
