@@ -39,7 +39,7 @@ async function sendRequest(){
           </div>
           <p className="dark:text-white text-lg ps">
             {type ==="signup" ?"Already have an account?":"Don't have an account?"}
-            <Link to={type === "signin" ? "/signup" : "/signin"} className="pl-2 underline">
+            <Link to={type === "signin" ? "/" : "/signin"} className="pl-2 underline">
               {type === "signin" ? "Sign up" : "Sign in"}
             </Link>
           </p>

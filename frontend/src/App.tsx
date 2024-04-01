@@ -11,7 +11,7 @@ function App() {
     <>
       <BrowserRouter>
       <Routes>
-        <Route path='/signup' element={<SignupPage/>}/>
+        <Route path='/' element={<SignupPage/>}/>
         <Route path='/signin' element={<SigninCard/>}/>
         <Route path='/blog/:id' element={<Blog/>}/>
         <Route path='/blog/bulk/posts' element={<Posts/>}/>
