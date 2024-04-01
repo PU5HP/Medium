@@ -13,7 +13,7 @@ export const Posts = () => {
     }
     return <div>
         
-        <Appbar authorName="user"></Appbar>
+        <Appbar></Appbar>
         <div className="flex justify-center">
         <div>
           {blogs.map(blog => <PostCard 

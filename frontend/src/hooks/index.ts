@@ -21,12 +21,10 @@ export const useBlog = ({id}: {id:string}) =>{
             }
         })
         .then(response => {
-            setBlog(response.data.user_posts_all);
+            setBlog(response.data.user_posts_uid);
             setLoading(false);
         })
-        .catch(error => {
-            console.error('Error fetching data:', error);
-        })
+        
     },[id])
 
     return{
