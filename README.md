@@ -13,7 +13,7 @@ Full Stack Medium App
 
 5.  Prisma as the ORM, with connection pooling
 
-6.  Postgres as the database
+6.  Postgres as the database (AIven)
 
 7.  jwt for authentication
 
